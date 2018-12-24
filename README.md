@@ -29,7 +29,7 @@ docker build -t object_detector_keras_ssd:latest .
 ```
 Затем чтобы запустить образ, нужно применить следующую команду:
 ```
-docker run --name object_detector_keras_ssd -d -p 80:5000 --rm object_detector_keras_ssd
+docker run --name object_detector_keras_ssd -d -p 8002:5000 --rm object_detector_keras_ssd
 ```
 После запуска сервис будет доступен по адресу 0.0.0.0:80
 
