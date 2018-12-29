@@ -7,17 +7,11 @@ Module for rest-like api of SSD
 """
 
 import base64
-#import io
-#import uuid
-#from datetime import datetime, timedelta
-#from copy import deepcopy
-#from PIL import Image
-from flask import Flask, request, json # make_response,
+from flask import request, json 
 
-#from app import app
-app = Flask(__name__)
-#import app.recognition_processor as rp
-from SSD300 import detector
+from app import app
+
+from app.SSD300 import detector
 
 @app.route('/ssd', methods=['POST'])
 def ssd():

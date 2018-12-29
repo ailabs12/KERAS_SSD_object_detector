@@ -14,8 +14,8 @@ import cv2
 import base64
 import io
 
-from models.keras_ssd300 import ssd_300
-from keras_loss_function.keras_ssd_loss import SSDLoss
+from app.models.keras_ssd300 import ssd_300
+from app.keras_loss_function.keras_ssd_loss import SSDLoss
 
 # Set the image size.
 img_height = 300
@@ -27,6 +27,7 @@ classes = ['background',
            'chair', 'cow', 'diningtable', 'dog',
            'horse', 'motorbike', 'person', 'pottedplant',
            'sheep', 'sofa', 'train', 'tvmonitor']
+fltr = ['bus', 'car', 'train', 'truck']
 
 def detector(image_body, img_header): #image_format):
     """ 1. Load a trained SSD
@@ -58,7 +59,7 @@ def detector(image_body, img_header): #image_format):
                 nms_max_output_size=400)    
     # 2: Load the trained weights into the model.
     # TODO: Set the path of the trained weights.
-    weights_path = './VGG_VOC0712_SSD_300x300_ft_iter_120000.h5'
+    weights_path = 'app/VGG_VOC0712_SSD_300x300_ft_iter_120000.h5'
     model.load_weights(weights_path, by_name=True)
 
     # 3: Compile the model so that Keras won't complain the next time you load it.
@@ -90,23 +91,24 @@ def detector(image_body, img_header): #image_format):
     """ 4. For JSON-output """
     predictions = []
     for i in y_pred_thresh[0]:
-        xmin = int(i[2]) if int(i[2]) > 0 else 0
-        ymin = int(i[3]) if int(i[3]) > 0 else 0
-        xmax = int(i[4]) if int(i[4]) > 0 else 0
-        ymax = int(i[5]) if int(i[5]) > 0 else 0
-        cut_img = img[ymin:ymax, xmin:xmax]
-        cut_img = image.array_to_img(cut_img)   
-        """ Странные манипуляции для получения заголовка jpeg """
-        cut_io = io.BytesIO()
-        cut_img.save(cut_io, 'jpeg') # Взять формат который был указан на входном изображении и подставить сюда (jpeg, png и тд)
-        cut_io.seek(0)
-        crop_ = cut_io.read()
-        cut_64_encode = img_header + base64.b64encode(crop_).decode()
-        
-        X, Y, height, width = xmin, ymax, ymax-ymin, xmax-xmin
-        CLASS = classes[int(i[0])]
-        confidence = str("%.1f%%" % (i[1]*100))
-        predictions.append(({'class' : CLASS, 
+        if fltr.count(classes[int(i[0])]):
+            xmin = int(i[2]) if int(i[2]) > 0 else 0
+            ymin = int(i[3]) if int(i[3]) > 0 else 0
+            xmax = int(i[4]) if int(i[4]) > 0 else 0
+            ymax = int(i[5]) if int(i[5]) > 0 else 0
+            cut_img = img[ymin:ymax, xmin:xmax]
+            cut_img = image.array_to_img(cut_img) 
+            """ Странные манипуляции для получения заголовка jpeg """
+            cut_io = io.BytesIO()
+            cut_img.save(cut_io, 'jpeg') # Взять формат который был указан на входном изображении и подставить сюда (jpeg, png и тд)
+            cut_io.seek(0)
+            crop_ = cut_io.read()
+            cut_64_encode = img_header + base64.b64encode(crop_).decode()
+            
+            X, Y, height, width = xmin, ymax, ymax-ymin, xmax-xmin
+            CLASS = classes[int(i[0])]
+            confidence = str("%.1f%%" % (i[1]*100))
+            predictions.append(({'class' : CLASS, 
                              'confidence' : confidence, 
                              'x' : X, 'y' : Y, 
                              'h' : height, 'w' : width,
