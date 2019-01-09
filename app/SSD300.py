@@ -68,10 +68,12 @@ def detector(image_body, img_header): #image_format):
     model.compile(optimizer=adam, loss=ssd_loss.compute_loss)    
     
     """ 2. Load some images """
+    orig_images = [] # Store the images here.
     input_images = [] # Store resized versions of the images here.
     unchanged_image = cv2.imdecode(np.fromstring(image_body,
                            np.uint8), cv2.IMREAD_UNCHANGED)
     img = cv2.cvtColor(unchanged_image, cv2.COLOR_BGR2RGB)
+    orig_images.append(img) # # Store the original image
     img = cv2.resize(img, (img_width, img_height))
     x = image.img_to_array(img)
    
@@ -92,11 +94,13 @@ def detector(image_body, img_header): #image_format):
     predictions = []
     for i in y_pred_thresh[0]:
         if fltr.count(classes[int(i[0])]):
-            xmin = int(i[2]) if int(i[2]) > 0 else 0
-            ymin = int(i[3]) if int(i[3]) > 0 else 0
-            xmax = int(i[4]) if int(i[4]) > 0 else 0
-            ymax = int(i[5]) if int(i[5]) > 0 else 0
-            cut_img = img[ymin:ymax, xmin:xmax]
+            # Transform the predicted bounding boxes for the 300x300 image to the original image dimensions.
+            xmin = int(i[2] * orig_images[0].shape[1] / img_width)  if i[2] > 0 else 0
+            ymin = int(i[3] * orig_images[0].shape[0] / img_height) if i[3] > 0 else 0
+            xmax = int(i[4] * orig_images[0].shape[1] / img_width)  if i[4] > 0 else 0
+            ymax = int(i[5] * orig_images[0].shape[0] / img_height) if i[5] > 0 else 0
+
+            cut_img = np.array(orig_images[0])[ymin:ymax, xmin:xmax]
             cut_img = image.array_to_img(cut_img) 
             """ Странные манипуляции для получения заголовка jpeg """
             cut_io = io.BytesIO()
@@ -105,7 +109,7 @@ def detector(image_body, img_header): #image_format):
             crop_ = cut_io.read()
             cut_64_encode = img_header + base64.b64encode(crop_).decode()
             
-            X, Y, height, width = xmin, ymax, ymax-ymin, xmax-xmin
+            X, Y, height, width = xmin, ymin, ymax-ymin, xmax-xmin
             CLASS = classes[int(i[0])]
             confidence = str("%.1f%%" % (i[1]*100))
             predictions.append(({'class' : CLASS, 

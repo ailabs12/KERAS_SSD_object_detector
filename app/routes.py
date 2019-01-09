@@ -27,7 +27,7 @@ def ssd():
         return json.jsonify(get_json_response(msg='Image not found'))
 
     #start_time = datetime.now()
-    prediction_result = detector(img_body, img_header) #img_b64.format) 
+    prediction_result = detector(img_body, img_header) 
     #delta = datetime.now() - start_time
 
     if (prediction_result == []):
