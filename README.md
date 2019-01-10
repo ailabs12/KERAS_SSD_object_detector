@@ -24,7 +24,7 @@ pip install -r requirements.txt
 # Run server with Docker
 Для того, чтобы запустить сервис с помощью Docker нужно сначала собрать Docker image:
 ```
-cd KERAS_SSD_object_detector/app
+cd KERAS_SSD_object_detector
 docker build -t object_detector_keras_ssd:latest .
 ```
 Затем чтобы запустить образ, нужно применить следующую команду:
