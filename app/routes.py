@@ -5,13 +5,32 @@ Created on Fri Nov 16 14:05:57 2018
 Module for rest-like api of SSD
 @author: kdg
 """
-
 import base64
 from flask import request, json 
 
 from app import app
-
 from app.SSD300 import detector
+
+import tensorflow as tf
+from keras import backend 
+from keras.models import load_model
+
+from app.keras_loss_function.keras_ssd_loss import SSDLoss
+from app.keras_layers.keras_layer_AnchorBoxes import AnchorBoxes
+from app.keras_layers.keras_layer_DecodeDetections import DecodeDetections
+from app.keras_layers.keras_layer_L2Normalization import L2Normalization
+
+backend.clear_session() # Clear previous models from memory.
+
+_MODELS_PATH = 'app/SSD_300x300_ft_iter_120000.h5'
+# We need to create an SSDLoss object in order to pass that to the model loader.
+_SSD_LOSS = SSDLoss(neg_pos_ratio=3, n_neg_min=0, alpha=1.0)
+_GRAPH = tf.get_default_graph()
+_MODEL = load_model(_MODELS_PATH, compile = False,
+                   custom_objects = {'AnchorBoxes': AnchorBoxes,
+                                     'L2Normalization': L2Normalization,
+                                     'DecodeDetections': DecodeDetections,
+                                     'compute_loss': _SSD_LOSS.compute_loss})
 
 @app.route('/ssd', methods=['POST'])
 def ssd():
@@ -27,7 +46,8 @@ def ssd():
         return json.jsonify(get_json_response(msg='Image not found'))
 
     #start_time = datetime.now()
-    prediction_result = detector(img_body, img_header) 
+    with _GRAPH.as_default():
+        prediction_result = detector(img_body, img_header, _MODEL) 
     #delta = datetime.now() - start_time
 
     if (prediction_result == []):
@@ -56,7 +76,7 @@ def get_image_header(img_b64):
         #data:image/jpeg;base64,
         return img_b64.split(',')[0] + ','
     else:
-        return None    
+        return None     
 
 def get_json_response(result=None, msg=None):
     json = {
